@@ -1,0 +1,36 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Load EEG data
+eeg_data = pd.read_csv("EEG_data.csv")
+
+# Select one subject and one video
+subject_id = 0
+video_id = 0
+sample_data = eeg_data[(eeg_data["SubjectID"] == subject_id) & (eeg_data["VideoID"] == video_id)].reset_index(drop=True)
+
+# Extract the signal (Theta band in this case)
+signal = sample_data["Theta"].values
+window_size = 40  # number of time steps in each sliding window
+
+# Initialize the plot
+fig, ax = plt.subplots(figsize=(10, 5))
+line, = ax.plot(signal[:window_size], color='orange')
+label = ax.text(0.02, 0.95, "", transform=ax.transAxes)
+
+ax.set_xlim(0, window_size)
+ax.set_ylim(signal.min() * 0.8, signal.max() * 1.2)
+ax.set_title("EEG Theta Band Signal Animation")
+ax.set_xlabel("Time Sample")
+ax.set_ylabel("Amplitude")
+
+# Animate the EEG signal
+for i in range(window_size, len(signal)):
+    segment = signal[i - window_size:i]
+    line.set_ydata(segment)
+    label.set_text(f"Time: {i * 0.1:.1f} sec")  # each row is 0.5 sec apart
+    fig.canvas.draw()
+    plt.pause(0.05)
+
+plt.show()

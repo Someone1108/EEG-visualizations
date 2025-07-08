@@ -1,0 +1,57 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Load EEG data
+eeg_data = pd.read_csv("EEG_data.csv")
+
+# Choose one subject and one video
+subject_id = 0
+video_id = 0
+sample_data = eeg_data[(eeg_data["SubjectID"] == subject_id) & (eeg_data["VideoID"] == video_id)].reset_index(drop=True)
+
+# Extract frequency bands
+delta = sample_data["Delta"].values
+theta = sample_data["Theta"].values
+alpha = sample_data["Alpha1"].values + sample_data["Alpha2"].values
+beta = sample_data["Beta1"].values + sample_data["Beta2"].values
+gamma = sample_data["Gamma1"].values + sample_data["Gamma2"].values
+
+# Combine into a dictionary for easier handling
+bands = {
+    "Delta": delta,
+    "Theta": theta,
+    "Alpha": alpha,
+    "Beta": beta,
+    "Gamma": gamma
+}
+
+window_size = 40  # Number of points in sliding window
+time_step = 0.5   # seconds between samples
+time = np.arange(window_size) * time_step
+
+# Initialize plot
+fig, ax = plt.subplots(figsize=(12, 6))
+lines = {name: ax.plot(time, data[:window_size], label=name)[0] for name, data in bands.items()}
+label = ax.text(0.02, 0.95, "", transform=ax.transAxes)
+
+# Set limits
+ymin = min([min(data) for data in bands.values()])
+ymax = max([max(data) for data in bands.values()])
+ax.set_xlim(time[0], time[-1])
+ax.set_ylim(ymin * 0.9, ymax * 1.1)
+ax.set_title("Animated EEG Frequency Bands (Subject 0, Video 0)")
+ax.set_xlabel("Time (sec)")
+ax.set_ylabel("Amplitude")
+ax.legend()
+ax.grid(True)
+
+# Animate
+for i in range(window_size, len(sample_data)):
+    for name, line in lines.items():
+        line.set_ydata(bands[name][i - window_size:i])
+    label.set_text(f"Time: {i * time_step:.1f} sec")
+    fig.canvas.draw()
+    plt.pause(0.05)
+
+plt.show()
