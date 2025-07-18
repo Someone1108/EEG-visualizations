@@ -1,0 +1,49 @@
+import pyvista as pv
+import pandas as pd
+import numpy as np
+
+# Load EEG CSV and 3D model
+eeg_df = pd.read_csv("EEG_data.csv")
+brain_model = pv.read("14618_Human_Brain_Bookend_v1.obj")
+
+brain_model.scale([20, 20, 20])
+
+# EEG band coordinates (adjust if needed)
+eeg_band_coords = {
+    'Delta': [0.0, 5.0, 6.0],     # forehead deep
+    'Theta': [0.0, 3.5, 7.5],     # front mid
+    'Alpha1': [-3.0, 2.0, 9.0],   # left-top interior
+    'Alpha2': [3.0, 2.0, 9.0],    # right-top interior
+    'Beta1': [-4.0, 0.0, 7.0],    # left temporal deep
+    'Beta2': [4.0, 0.0, 7.0],     # right temporal deep
+    'Gamma1': [-2.5, -3.5, 6.0],  # back-left inside
+    'Gamma2': [2.5, -3.5, 6.0],   # back-right inside
+}
+colors = {
+    'Delta': 'blue',
+    'Theta': 'green',
+    'Alpha1': 'orange',
+    'Alpha2': 'orange',
+    'Beta1': 'red',
+    'Beta2': 'red',
+    'Gamma1': 'purple',
+    'Gamma2': 'purple',
+}
+
+# Take the first EEG row
+sample = eeg_df.iloc[0]
+
+# Set up the plotter
+plotter = pv.Plotter()
+plotter.add_mesh(brain_model, color='lightgray', opacity=0.5)
+
+# Plot EEG spheres
+for band, coord in eeg_band_coords.items():
+    value = sample[band]
+    radius = np.clip(value / 20000, 0.5, 3)
+    sphere = pv.Sphere(radius=radius, center=coord)
+    plotter.add_mesh(sphere, color=colors[band], opacity=0.85)
+    plotter.add_point_labels([coord], [band], point_size=0, font_size=10)
+
+plotter.show()
+print("Brain model bounds:", brain_model.bounds)

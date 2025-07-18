@@ -1,0 +1,59 @@
+import pyvista as pv
+import pandas as pd
+import numpy as np
+import imageio
+import os
+
+# Load EEG data
+eeg_df = pd.read_csv("EEG_data.csv")
+
+# Load 3D brain model and scale
+brain_model = pv.read("14618_Human_Brain_Bookend_v1.obj")
+brain_model.scale([20, 20, 20])
+
+# EEG band coordinates inside the brain
+eeg_band_coords = {
+    'Delta': [0.0, 5.0, 6.0],
+    'Theta': [0.0, 3.5, 7.5],
+    'Alpha1': [-3.0, 2.0, 9.0],
+    'Alpha2': [3.0, 2.0, 9.0],
+    'Beta1': [-4.0, 0.0, 7.0],
+    'Beta2': [4.0, 0.0, 7.0],
+    'Gamma1': [-2.5, -3.5, 6.0],
+    'Gamma2': [2.5, -3.5, 6.0],
+}
+
+# Color mapping
+colors = {
+    'Delta': 'blue', 'Theta': 'green', 'Alpha1': 'orange', 'Alpha2': 'orange',
+    'Beta1': 'red', 'Beta2': 'red', 'Gamma1': 'purple', 'Gamma2': 'purple',
+}
+
+# Output frame directory
+os.makedirs("frames", exist_ok=True)
+frame_paths = []
+
+# Loop through EEG rows (sparse for performance)
+for i in range(0, min(1000, len(eeg_df)), 5):  # Every 5th row
+    sample = eeg_df.iloc[i]
+    plotter = pv.Plotter(off_screen=True)
+    plotter.add_mesh(brain_model, color='lightgray', opacity=0.3)
+    
+    for band, coord in eeg_band_coords.items():
+        value = sample[band]
+        radius = np.clip(value / 25000, 0.3, 2.0)
+        sphere = pv.Sphere(radius=radius, center=coord)
+        plotter.add_mesh(sphere, color=colors[band], opacity=0.85)
+        plotter.add_point_labels([coord], [band], point_size=0, font_size=10)
+
+    frame_path = f"frames/frame_{i:04d}.png"
+    plotter.show(screenshot=frame_path)
+    frame_paths.append(frame_path)
+
+# Create GIF
+with imageio.get_writer("eeg_brain_animation.gif", mode='I', duration=0.2) as writer:
+    for f in frame_paths:
+        image = imageio.imread(f)
+        writer.append_data(image)
+
+print(" Animation saved as eeg_brain_animation.gif")
